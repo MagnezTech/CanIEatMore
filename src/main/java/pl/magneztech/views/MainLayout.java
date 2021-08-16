@@ -1,34 +1,31 @@
 package pl.magneztech.views;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
+import com.vaadin.flow.component.avatar.Avatar;
+import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.component.tabs.TabsVariant;
-import com.vaadin.flow.router.RouterLink;
-import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.PageTitle;
-import pl.magneztech.views.MainLayout;
-import pl.magneztech.views.today.TodayView;
-import pl.magneztech.views.alldays.AllDaysView;
-import pl.magneztech.views.entries.EntriesView;
+import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.PWA;
 import com.vaadin.flow.theme.Theme;
 import com.vaadin.flow.theme.lumo.Lumo;
-import com.vaadin.flow.component.avatar.Avatar;
+import pl.magneztech.views.entries.EntriesView;
+import pl.magneztech.views.calendar.CalendarView;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * The main view is a top-level placeholder for other views.
@@ -38,40 +35,28 @@ import com.vaadin.flow.component.avatar.Avatar;
 @PageTitle("Main")
 public class MainLayout extends AppLayout {
 
-    public static class MenuItemInfo {
-
-        private String text;
-        private String iconClass;
-        private Class<? extends Component> view;
-
-        public MenuItemInfo(String text, String iconClass, Class<? extends Component> view) {
-            this.text = text;
-            this.iconClass = iconClass;
-            this.view = view;
-        }
-
-        public String getText() {
-            return text;
-        }
-
-        public String getIconClass() {
-            return iconClass;
-        }
-
-        public Class<? extends Component> getView() {
-            return view;
-        }
-
-    }
-
     private final Tabs menu;
     private H1 viewTitle;
-
     public MainLayout() {
         setPrimarySection(Section.DRAWER);
         addToNavbar(true, createHeaderContent());
         menu = createMenu();
         addToDrawer(createDrawerContent(menu));
+    }
+
+    private static Tab createTab(MenuItemInfo menuItemInfo) {
+        Tab tab = new Tab();
+        RouterLink link = new RouterLink();
+        link.setRoute(menuItemInfo.getView());
+        Span iconElement = new Span();
+        iconElement.addClassNames("text-l", "pr-s");
+        if (!menuItemInfo.getIconClass().isEmpty()) {
+            iconElement.addClassNames(menuItemInfo.getIconClass());
+        }
+        link.add(iconElement, new Text(menuItemInfo.getText()));
+        tab.add(link);
+        ComponentUtil.setData(tab, Class.class, menuItemInfo.getView());
+        return tab;
     }
 
     private Component createHeaderContent() {
@@ -122,9 +107,9 @@ public class MainLayout extends AppLayout {
 
     private List<Tab> createMenuItems() {
         MenuItemInfo[] menuItems = new MenuItemInfo[]{ //
-                new MenuItemInfo("Today", "la la-columns", TodayView.class), //
+                new MenuItemInfo("Calendar", "la la-columns", CalendarView.class), //
 
-                new MenuItemInfo("All Days", "la la-columns", AllDaysView.class), //
+//                new MenuItemInfo("Calendar", "la la-columns", CalendarView.class), //
 
                 new MenuItemInfo("Entries", "la la-columns", EntriesView.class), //
 
@@ -135,21 +120,6 @@ public class MainLayout extends AppLayout {
 
         }
         return tabs;
-    }
-
-    private static Tab createTab(MenuItemInfo menuItemInfo) {
-        Tab tab = new Tab();
-        RouterLink link = new RouterLink();
-        link.setRoute(menuItemInfo.getView());
-        Span iconElement = new Span();
-        iconElement.addClassNames("text-l", "pr-s");
-        if (!menuItemInfo.getIconClass().isEmpty()) {
-            iconElement.addClassNames(menuItemInfo.getIconClass());
-        }
-        link.add(iconElement, new Text(menuItemInfo.getText()));
-        tab.add(link);
-        ComponentUtil.setData(tab, Class.class, menuItemInfo.getView());
-        return tab;
     }
 
     @Override
@@ -167,5 +137,31 @@ public class MainLayout extends AppLayout {
     private String getCurrentPageTitle() {
         PageTitle title = getContent().getClass().getAnnotation(PageTitle.class);
         return title == null ? "" : title.value();
+    }
+
+    public static class MenuItemInfo {
+
+        private final String text;
+        private final String iconClass;
+        private final Class<? extends Component> view;
+
+        public MenuItemInfo(String text, String iconClass, Class<? extends Component> view) {
+            this.text = text;
+            this.iconClass = iconClass;
+            this.view = view;
+        }
+
+        public String getText() {
+            return text;
+        }
+
+        public String getIconClass() {
+            return iconClass;
+        }
+
+        public Class<? extends Component> getView() {
+            return view;
+        }
+
     }
 }

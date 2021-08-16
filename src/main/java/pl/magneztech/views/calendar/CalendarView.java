@@ -1,63 +1,67 @@
-package pl.magneztech.views.today;
-
-import java.util.Optional;
-
-import pl.magneztech.data.entity.Record;
-import pl.magneztech.data.service.RecordService;
+package pl.magneztech.views.calendar;
 
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.HasStyle;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
+import com.vaadin.flow.component.grid.HeaderRow;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.ValidationException;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
-
+import com.vaadin.flow.data.converter.StringToIntegerConverter;
+import com.vaadin.flow.router.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.artur.helpers.CrudServiceDataProvider;
-import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.PageTitle;
+import pl.magneztech.data.entity.Entry;
+import pl.magneztech.data.entity.Record;
+import pl.magneztech.data.service.DayRecordCrudService;
+import pl.magneztech.data.service.EntryService;
+import pl.magneztech.data.service.RecordService;
 import pl.magneztech.views.MainLayout;
-import com.vaadin.flow.router.RouteAlias;
-import com.vaadin.flow.component.datepicker.DatePicker;
-import com.vaadin.flow.data.converter.StringToIntegerConverter;
-import com.vaadin.flow.component.textfield.TextField;
 
-@PageTitle("Today")
-@Route(value = "today/:recordID?/:action?(edit)", layout = MainLayout.class)
+import java.text.DecimalFormat;
+import java.time.LocalDate;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+
+@PageTitle("Calendar")
+@Route(value = "calendar/:recordID?/:action?(edit)", layout = MainLayout.class)
 @RouteAlias(value = "", layout = MainLayout.class)
-public class TodayView extends Div implements BeforeEnterObserver {
+public class CalendarView extends Div implements BeforeEnterObserver {
 
     private final String RECORD_ID = "recordID";
-    private final String RECORD_EDIT_ROUTE_TEMPLATE = "today/%d/edit";
-
-    private Grid<Record> grid = new Grid<>(Record.class, false);
-
-    private TextField entry;
+    private final String RECORD_EDIT_ROUTE_TEMPLATE = "calendar/%d/edit";
+    private final DecimalFormat df = new DecimalFormat("###.###");
+    private final Grid<Record> grid = new Grid<>(Record.class, false);
+    private final Button cancel = new Button("Cancel");
+    private final Button save = new Button("Save");
+    private final BeanValidationBinder<Record> binder;
+    private final RecordService recordService;
+    private final EntryService entryService;
+    private final DayRecordCrudService dayRecordCrudService;
+    private final HeaderRow sumRow;
+    private ComboBox<Entry> entriesCombobox;
     private TextField weight;
-    private DatePicker date;
-
-    private Button cancel = new Button("Cancel");
-    private Button save = new Button("Save");
-
-    private BeanValidationBinder<Record> binder;
-
+    private DatePicker datePicker = new DatePicker();
     private Record record;
 
-    private RecordService recordService;
-
-    public TodayView(@Autowired RecordService recordService) {
-        addClassNames("today-view", "flex", "flex-col", "h-full");
+    public CalendarView(@Autowired RecordService recordService, @Autowired EntryService entryService) {
+        addClassNames("calendar-view", "flex", "flex-col", "h-full");
         this.recordService = recordService;
+        this.entryService = entryService;
         // Create UI
         SplitLayout splitLayout = new SplitLayout();
         splitLayout.setSizeFull();
@@ -67,13 +71,30 @@ public class TodayView extends Div implements BeforeEnterObserver {
 
         add(splitLayout);
 
+        dayRecordCrudService = new DayRecordCrudService(recordService, LocalDate.now());
+
         // Configure Grid
-        grid.addColumn("entry").setAutoWidth(true);
+        grid.addColumn(record -> record.getEntry().getName()).setAutoWidth(true).setHeader("Entry").setSortable(true)
+                .setComparator(Comparator.comparing(o -> o.getEntry().getName())).setKey("entry");
         grid.addColumn("weight").setAutoWidth(true);
-        grid.addColumn("date").setAutoWidth(true);
-        grid.setDataProvider(new CrudServiceDataProvider<>(recordService));
+        grid.addColumn(record -> df.format(record.kcal())).setAutoWidth(true).setHeader("kcal").setSortable(true).setKey("kcal");
+        grid.addColumn(record -> df.format(record.fat())).setAutoWidth(true).setHeader("Fat").setSortable(true).setKey("fat");
+        grid.addColumn(record -> df.format(record.carbohydrate())).setAutoWidth(true).setHeader("Carbohydrate").setSortable(true).setKey("carbohydrate");
+        grid.addColumn(record -> df.format(record.protein())).setAutoWidth(true).setHeader("Protein").setSortable(true).setKey("protein");
+        grid.addComponentColumn(r -> {
+            Button button = new Button(new Icon(VaadinIcon.TRASH));
+            button.addClickListener(event -> {
+                dayRecordCrudService.delete(r.getId());
+                refreshGrid();
+            });
+            return button;
+        }).setAutoWidth(true).setHeader("");
+        grid.setDataProvider(new CrudServiceDataProvider<>(dayRecordCrudService));
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
-        grid.setHeightFull();
+        sumRow = grid.appendHeaderRow();
+
+        calculateSum();
+
 
         // when a row is selected or deselected, populate form
         grid.asSingleSelect().addValueChangeListener(event -> {
@@ -81,7 +102,7 @@ public class TodayView extends Div implements BeforeEnterObserver {
                 UI.getCurrent().navigate(String.format(RECORD_EDIT_ROUTE_TEMPLATE, event.getValue().getId()));
             } else {
                 clearForm();
-                UI.getCurrent().navigate(TodayView.class);
+                UI.getCurrent().navigate(CalendarView.class);
             }
         });
 
@@ -90,6 +111,7 @@ public class TodayView extends Div implements BeforeEnterObserver {
 
         // Bind fields. This where you'd define e.g. validation rules
         binder.forField(weight).withConverter(new StringToIntegerConverter("Only numbers are allowed")).bind("weight");
+        binder.forField(entriesCombobox).bind("entry");
 
         binder.bindInstanceFields(this);
 
@@ -104,17 +126,41 @@ public class TodayView extends Div implements BeforeEnterObserver {
                     this.record = new Record();
                 }
                 binder.writeBean(this.record);
+                this.record.setDate(datePicker.getValue());
 
                 recordService.update(this.record);
                 clearForm();
                 refreshGrid();
                 Notification.show("Record details stored.");
-                UI.getCurrent().navigate(TodayView.class);
+                UI.getCurrent().navigate(CalendarView.class);
             } catch (ValidationException validationException) {
                 Notification.show("An exception happened while trying to store the record details.");
             }
         });
 
+        datePicker.setValue(LocalDate.now());
+        datePicker.addClassName("centerAll");
+        datePicker.addValueChangeListener(event -> {
+            datePicker.setValue(event.getValue());
+            dayRecordCrudService.setDate(event.getValue());
+            clearForm();
+            refreshGrid();
+        });
+    }
+
+    private void calculateSum() {
+        List<Record> records = dayRecordCrudService.findAll();
+        sumRow.getCell(grid.getColumnByKey("entry")).setText("Summary");
+        sumRow.getCell(grid.getColumnByKey("weight"))
+                .setText(df.format(records.stream().mapToDouble(Record::getWeight).sum()));
+        sumRow.getCell(grid.getColumnByKey("kcal"))
+                .setText(df.format(records.stream().mapToDouble(Record::kcal).sum()));
+        sumRow.getCell(grid.getColumnByKey("fat"))
+                .setText(df.format(records.stream().mapToDouble(Record::fat).sum()));
+        sumRow.getCell(grid.getColumnByKey("carbohydrate"))
+                .setText(df.format(records.stream().mapToDouble(Record::carbohydrate).sum()));
+        sumRow.getCell(grid.getColumnByKey("protein"))
+                .setText(df.format(records.stream().mapToDouble(Record::protein).sum()));
     }
 
     @Override
@@ -130,7 +176,7 @@ public class TodayView extends Div implements BeforeEnterObserver {
                 // when a row is selected but the data is no longer available,
                 // refresh grid
                 refreshGrid();
-                event.forwardTo(TodayView.class);
+                event.forwardTo(CalendarView.class);
             }
         }
     }
@@ -145,10 +191,10 @@ public class TodayView extends Div implements BeforeEnterObserver {
         editorLayoutDiv.add(editorDiv);
 
         FormLayout formLayout = new FormLayout();
-        entry = new TextField("Entry");
+        entriesCombobox = new ComboBox<>("Entry", entryService.getAllEntries());
+        entriesCombobox.setItemLabelGenerator(Entry::getName);
         weight = new TextField("Weight");
-        date = new DatePicker("Date");
-        Component[] fields = new Component[]{entry, weight, date};
+        Component[] fields = new Component[]{entriesCombobox, weight};
 
         for (Component field : fields) {
             ((HasStyle) field).addClassName("full-width");
@@ -173,14 +219,16 @@ public class TodayView extends Div implements BeforeEnterObserver {
     private void createGridLayout(SplitLayout splitLayout) {
         Div wrapper = new Div();
         wrapper.setId("grid-wrapper");
+        wrapper.addClassName("centerAll");
         wrapper.setWidthFull();
         splitLayout.addToPrimary(wrapper);
-        wrapper.add(grid);
+        wrapper.add(datePicker, grid);
     }
 
     private void refreshGrid() {
         grid.select(null);
         grid.getDataProvider().refreshAll();
+        calculateSum();
     }
 
     private void clearForm() {
@@ -190,6 +238,5 @@ public class TodayView extends Div implements BeforeEnterObserver {
     private void populateForm(Record value) {
         this.record = value;
         binder.readBean(this.record);
-
     }
 }

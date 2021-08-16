@@ -1,34 +1,35 @@
 package pl.magneztech.views.entries;
 
-import java.util.Optional;
-
-import pl.magneztech.data.entity.Entry;
-import pl.magneztech.data.service.EntryService;
-
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.HasStyle;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridVariant;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.ValidationException;
+import com.vaadin.flow.data.converter.StringToDoubleConverter;
+import com.vaadin.flow.data.converter.StringToIntegerConverter;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
-
+import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.Route;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.artur.helpers.CrudServiceDataProvider;
-import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.PageTitle;
+import pl.magneztech.data.entity.Entry;
+import pl.magneztech.data.service.EntryService;
 import pl.magneztech.views.MainLayout;
-import com.vaadin.flow.data.converter.StringToIntegerConverter;
-import com.vaadin.flow.component.textfield.TextField;
+
+import java.util.Optional;
 
 @PageTitle("Entries")
 @Route(value = "entries/:entryID?/:action?(edit)", layout = MainLayout.class)
@@ -37,7 +38,7 @@ public class EntriesView extends Div implements BeforeEnterObserver {
     private final String ENTRY_ID = "entryID";
     private final String ENTRY_EDIT_ROUTE_TEMPLATE = "entries/%d/edit";
 
-    private Grid<Entry> grid = new Grid<>(Entry.class, false);
+    private final Grid<Entry> grid = new Grid<>(Entry.class, false);
 
     private TextField name;
     private TextField kcal;
@@ -45,14 +46,14 @@ public class EntriesView extends Div implements BeforeEnterObserver {
     private TextField carbohydrate;
     private TextField protein;
 
-    private Button cancel = new Button("Cancel");
-    private Button save = new Button("Save");
+    private final Button cancel = new Button("Cancel");
+    private final Button save = new Button("Save");
 
-    private BeanValidationBinder<Entry> binder;
+    private final BeanValidationBinder<Entry> binder;
 
     private Entry entry;
 
-    private EntryService entryService;
+    private final EntryService entryService;
 
     public EntriesView(@Autowired EntryService entryService) {
         addClassNames("entries-view", "flex", "flex-col", "h-full");
@@ -68,10 +69,18 @@ public class EntriesView extends Div implements BeforeEnterObserver {
 
         // Configure Grid
         grid.addColumn("name").setAutoWidth(true);
-        grid.addColumn("kcal").setAutoWidth(true);
+        grid.addColumn("kcal").setAutoWidth(true).setHeader("kcal");
         grid.addColumn("fat").setAutoWidth(true);
         grid.addColumn("carbohydrate").setAutoWidth(true);
         grid.addColumn("protein").setAutoWidth(true);
+        grid.addComponentColumn(r -> {
+            Button button = new Button(new Icon(VaadinIcon.TRASH));
+            button.addClickListener(event -> {
+                entryService.delete(r.getId());
+                refreshGrid();
+            });
+            return button;
+        }).setAutoWidth(true).setHeader("");
         grid.setDataProvider(new CrudServiceDataProvider<>(entryService));
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
         grid.setHeightFull();
@@ -90,11 +99,11 @@ public class EntriesView extends Div implements BeforeEnterObserver {
         binder = new BeanValidationBinder<>(Entry.class);
 
         // Bind fields. This where you'd define e.g. validation rules
-        binder.forField(kcal).withConverter(new StringToIntegerConverter("Only numbers are allowed")).bind("kcal");
-        binder.forField(fat).withConverter(new StringToIntegerConverter("Only numbers are allowed")).bind("fat");
-        binder.forField(carbohydrate).withConverter(new StringToIntegerConverter("Only numbers are allowed"))
+        binder.forField(kcal).withConverter(new StringToDoubleConverter("Only numbers are allowed")).bind("kcal");
+        binder.forField(fat).withConverter(new StringToDoubleConverter("Only numbers are allowed")).bind("fat");
+        binder.forField(carbohydrate).withConverter(new StringToDoubleConverter("Only numbers are allowed"))
                 .bind("carbohydrate");
-        binder.forField(protein).withConverter(new StringToIntegerConverter("Only numbers are allowed"))
+        binder.forField(protein).withConverter(new StringToDoubleConverter("Only numbers are allowed"))
                 .bind("protein");
 
         binder.bindInstanceFields(this);

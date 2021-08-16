@@ -1,46 +1,61 @@
 package pl.magneztech.data.entity;
 
-import javax.persistence.Entity;
-
 import pl.magneztech.data.AbstractEntity;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
 
 @Entity
 public class Entry extends AbstractEntity {
 
+    @Column(nullable = false)
     private String name;
-    private Integer kcal;
-    private Integer fat;
-    private Integer carbohydrate;
-    private Integer protein;
+    @Column(nullable = false)
+    private Double kcal;
+    @Column(nullable = false)
+    private Double fat;
+    @Column(nullable = false)
+    private Double carbohydrate;
+    @Column(nullable = false)
+    private Double protein;
 
     public String getName() {
         return name;
     }
+
     public void setName(String name) {
         this.name = name;
     }
-    public Integer getKcal() {
+
+    public Double getKcal() {
         return kcal;
     }
-    public void setKcal(Integer kcal) {
+
+    public void setKcal(Double kcal) {
         this.kcal = kcal;
     }
-    public Integer getFat() {
+
+    public Double getFat() {
         return fat;
     }
-    public void setFat(Integer fat) {
+
+    public void setFat(Double fat) {
         this.fat = fat;
     }
-    public Integer getCarbohydrate() {
+
+    public Double getCarbohydrate() {
         return carbohydrate;
     }
-    public void setCarbohydrate(Integer carbohydrate) {
+
+    public void setCarbohydrate(Double carbohydrate) {
         this.carbohydrate = carbohydrate;
     }
-    public Integer getProtein() {
+
+    public Double getProtein() {
         return protein;
     }
-    public void setProtein(Integer protein) {
+
+    public void setProtein(Double protein) {
         this.protein = protein;
     }
 
