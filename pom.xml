@@ -5,8 +5,8 @@
     <!-- Vaadin project from https://start.vaadin.com/project/866b0c7f-7c9c-4cc5-bcea-957225f36ab3 -->
     <groupId>pl.magneztech</groupId>
     <artifactId>canieatmore</artifactId>
-    <name>Project base for Spring Boot and Vaadin Flow</name>
-    <version>1.0-SNAPSHOT</version>
+    <name>Can I Eat More</name>
+    <version>1.0</version>
     <packaging>jar</packaging>
 
     <properties>
