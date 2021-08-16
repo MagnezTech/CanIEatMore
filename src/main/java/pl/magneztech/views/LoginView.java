@@ -9,7 +9,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
 @Route("login")
-@PageTitle("Login | Vaadin CRM")
+@PageTitle("Login | Can I Eat More")
 public class LoginView extends VerticalLayout implements BeforeEnterObserver {
 
     private LoginForm login = new LoginForm();
@@ -22,7 +22,7 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver {
 
         login.setAction("login");
 
-        add(new H1("Vaadin CRM"), login);
+        add(new H1("Can I Eat More"), login);
     }
 
     @Override

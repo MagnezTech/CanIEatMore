@@ -17,10 +17,10 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
-import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.ValidationException;
-import com.vaadin.flow.data.converter.StringToIntegerConverter;
+import com.vaadin.flow.function.ValueProvider;
 import com.vaadin.flow.router.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.vaadin.artur.helpers.CrudServiceDataProvider;
@@ -54,7 +54,7 @@ public class CalendarView extends Div implements BeforeEnterObserver {
     private final DayRecordCrudService dayRecordCrudService;
     private final HeaderRow sumRow;
     private ComboBox<Entry> entriesCombobox;
-    private TextField weight;
+    private NumberField weight;
     private DatePicker datePicker = new DatePicker();
     private Record record;
 
@@ -110,7 +110,8 @@ public class CalendarView extends Div implements BeforeEnterObserver {
         binder = new BeanValidationBinder<>(Record.class);
 
         // Bind fields. This where you'd define e.g. validation rules
-        binder.forField(weight).withConverter(new StringToIntegerConverter("Only numbers are allowed")).bind("weight");
+        binder.forField(weight).bind((ValueProvider<Record, Double>) record -> record.getWeight() == null ? 0.0 : record.getWeight().doubleValue(),
+                (r, d) -> r.setWeight(d.intValue()));
         binder.forField(entriesCombobox).bind("entry");
 
         binder.bindInstanceFields(this);
@@ -193,7 +194,7 @@ public class CalendarView extends Div implements BeforeEnterObserver {
         FormLayout formLayout = new FormLayout();
         entriesCombobox = new ComboBox<>("Entry", entryService.getAllEntries());
         entriesCombobox.setItemLabelGenerator(Entry::getName);
-        weight = new TextField("Weight");
+        weight = new NumberField("Weight");
         Component[] fields = new Component[]{entriesCombobox, weight};
 
         for (Component field : fields) {

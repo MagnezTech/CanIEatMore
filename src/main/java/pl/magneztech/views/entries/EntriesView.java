@@ -14,11 +14,10 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
+import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.ValidationException;
-import com.vaadin.flow.data.converter.StringToDoubleConverter;
-import com.vaadin.flow.data.converter.StringToIntegerConverter;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
@@ -39,21 +38,16 @@ public class EntriesView extends Div implements BeforeEnterObserver {
     private final String ENTRY_EDIT_ROUTE_TEMPLATE = "entries/%d/edit";
 
     private final Grid<Entry> grid = new Grid<>(Entry.class, false);
-
-    private TextField name;
-    private TextField kcal;
-    private TextField fat;
-    private TextField carbohydrate;
-    private TextField protein;
-
     private final Button cancel = new Button("Cancel");
     private final Button save = new Button("Save");
-
     private final BeanValidationBinder<Entry> binder;
-
-    private Entry entry;
-
     private final EntryService entryService;
+    private TextField name;
+    private NumberField kcal;
+    private NumberField fat;
+    private NumberField carbohydrate;
+    private NumberField protein;
+    private Entry entry;
 
     public EntriesView(@Autowired EntryService entryService) {
         addClassNames("entries-view", "flex", "flex-col", "h-full");
@@ -99,12 +93,10 @@ public class EntriesView extends Div implements BeforeEnterObserver {
         binder = new BeanValidationBinder<>(Entry.class);
 
         // Bind fields. This where you'd define e.g. validation rules
-        binder.forField(kcal).withConverter(new StringToDoubleConverter("Only numbers are allowed")).bind("kcal");
-        binder.forField(fat).withConverter(new StringToDoubleConverter("Only numbers are allowed")).bind("fat");
-        binder.forField(carbohydrate).withConverter(new StringToDoubleConverter("Only numbers are allowed"))
-                .bind("carbohydrate");
-        binder.forField(protein).withConverter(new StringToDoubleConverter("Only numbers are allowed"))
-                .bind("protein");
+        binder.forField(kcal).bind("kcal");
+        binder.forField(fat).bind("fat");
+        binder.forField(carbohydrate).bind("carbohydrate");
+        binder.forField(protein).bind("protein");
 
         binder.bindInstanceFields(this);
 
@@ -161,10 +153,10 @@ public class EntriesView extends Div implements BeforeEnterObserver {
 
         FormLayout formLayout = new FormLayout();
         name = new TextField("Name");
-        kcal = new TextField("Kcal");
-        fat = new TextField("Fat");
-        carbohydrate = new TextField("Carbohydrate");
-        protein = new TextField("Protein");
+        kcal = new NumberField("Kcal");
+        fat = new NumberField("Fat");
+        carbohydrate = new NumberField("Carbohydrate");
+        protein = new NumberField("Protein");
         Component[] fields = new Component[]{name, kcal, fat, carbohydrate, protein};
 
         for (Component field : fields) {

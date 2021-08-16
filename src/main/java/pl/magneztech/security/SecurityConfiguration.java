@@ -42,7 +42,7 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     public UserDetailsService userDetailsService() {
         UserDetails user =
                 User.withUsername("marcin")
-                        .password("{noop}whatever")
+                        .password("{noop}mar")
                         .roles("USER")
                         .build();
 
