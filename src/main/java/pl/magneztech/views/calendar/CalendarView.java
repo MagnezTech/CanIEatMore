@@ -95,7 +95,6 @@ public class CalendarView extends Div implements BeforeEnterObserver {
 
         calculateSum();
 
-
         // when a row is selected or deselected, populate form
         grid.asSingleSelect().addValueChangeListener(event -> {
             if (event.getValue() != null) {
@@ -222,6 +221,8 @@ public class CalendarView extends Div implements BeforeEnterObserver {
         wrapper.setId("grid-wrapper");
         wrapper.addClassName("centerAll");
         wrapper.setWidthFull();
+        wrapper.setHeightFull();
+        grid.setHeight("90%");
         splitLayout.addToPrimary(wrapper);
         wrapper.add(datePicker, grid);
     }
