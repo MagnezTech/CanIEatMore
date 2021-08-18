@@ -5,6 +5,9 @@ import org.springframework.stereotype.Service;
 import org.vaadin.artur.helpers.CrudService;
 import pl.magneztech.data.entity.Record;
 
+import java.time.LocalDate;
+import java.util.Collection;
+
 @Service
 public class RecordService extends CrudService<Record, Integer> {
 
@@ -19,4 +22,7 @@ public class RecordService extends CrudService<Record, Integer> {
         return repository;
     }
 
+    public Collection<Record> getAllRecordsForDay(LocalDate date) {
+        return repository.findAllByDate(date);
+    }
 }

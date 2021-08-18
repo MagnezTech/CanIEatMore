@@ -20,19 +20,19 @@ import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.ValidationException;
+import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.function.ValueProvider;
 import com.vaadin.flow.router.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.vaadin.artur.helpers.CrudServiceDataProvider;
 import pl.magneztech.data.entity.Entry;
 import pl.magneztech.data.entity.Record;
-import pl.magneztech.data.service.DayRecordCrudService;
 import pl.magneztech.data.service.EntryService;
 import pl.magneztech.data.service.RecordService;
 import pl.magneztech.views.MainLayout;
 
 import java.text.DecimalFormat;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -51,7 +51,6 @@ public class CalendarView extends Div implements BeforeEnterObserver {
     private final BeanValidationBinder<Record> binder;
     private final RecordService recordService;
     private final EntryService entryService;
-    private final DayRecordCrudService dayRecordCrudService;
     private final HeaderRow sumRow;
     private ComboBox<Entry> entriesCombobox;
     private NumberField weight;
@@ -71,25 +70,28 @@ public class CalendarView extends Div implements BeforeEnterObserver {
 
         add(splitLayout);
 
-        dayRecordCrudService = new DayRecordCrudService(recordService, LocalDate.now());
-
         // Configure Grid
         grid.addColumn(record -> record.getEntry().getName()).setAutoWidth(true).setHeader("Entry").setSortable(true)
                 .setComparator(Comparator.comparing(o -> o.getEntry().getName())).setKey("entry");
         grid.addColumn("weight").setAutoWidth(true);
-        grid.addColumn(record -> df.format(record.kcal())).setAutoWidth(true).setHeader("kcal").setSortable(true).setKey("kcal");
-        grid.addColumn(record -> df.format(record.fat())).setAutoWidth(true).setHeader("Fat").setSortable(true).setKey("fat");
-        grid.addColumn(record -> df.format(record.carbohydrate())).setAutoWidth(true).setHeader("Carbohydrate").setSortable(true).setKey("carbohydrate");
-        grid.addColumn(record -> df.format(record.protein())).setAutoWidth(true).setHeader("Protein").setSortable(true).setKey("protein");
+        grid.addColumn(record -> df.format(record.getKcal())).setAutoWidth(true).setHeader("kcal").setSortable(true).setKey("kcal")
+                .setComparator(Comparator.comparing(Record::getKcal));
+        grid.addColumn(record -> df.format(record.getFat())).setAutoWidth(true).setHeader("Fat").setSortable(true).setKey("fat")
+                .setComparator(Comparator.comparing(Record::getFat));
+        grid.addColumn(record -> df.format(record.getCarbohydrate())).setAutoWidth(true).setHeader("Carbohydrate").setSortable(true).setKey("carbohydrate")
+                .setComparator(Comparator.comparing(Record::getCarbohydrate));
+        grid.addColumn(record -> df.format(record.getProtein())).setAutoWidth(true).setHeader("Protein").setSortable(true).setKey("protein")
+                .setComparator(Comparator.comparing(Record::getProtein));
         grid.addComponentColumn(r -> {
             Button button = new Button(new Icon(VaadinIcon.TRASH));
             button.addClickListener(event -> {
-                dayRecordCrudService.delete(r.getId());
+                recordService.delete(r.getId());
                 refreshGrid();
             });
             return button;
         }).setAutoWidth(true).setHeader("");
-        grid.setDataProvider(new CrudServiceDataProvider<>(dayRecordCrudService));
+        grid.setDataProvider(new ListDataProvider<>(recordService.getAllRecordsForDay(LocalDate.now())));
+        grid.getDataProvider().refreshAll();
         grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
         sumRow = grid.appendHeaderRow();
 
@@ -142,25 +144,24 @@ public class CalendarView extends Div implements BeforeEnterObserver {
         datePicker.addClassName("centerAll");
         datePicker.addValueChangeListener(event -> {
             datePicker.setValue(event.getValue());
-            dayRecordCrudService.setDate(event.getValue());
             clearForm();
             refreshGrid();
         });
     }
 
     private void calculateSum() {
-        List<Record> records = dayRecordCrudService.findAll();
+        List<Record> records = new ArrayList<>(recordService.getAllRecordsForDay(datePicker.getValue()));
         sumRow.getCell(grid.getColumnByKey("entry")).setText("Summary");
         sumRow.getCell(grid.getColumnByKey("weight"))
                 .setText(df.format(records.stream().mapToDouble(Record::getWeight).sum()));
         sumRow.getCell(grid.getColumnByKey("kcal"))
-                .setText(df.format(records.stream().mapToDouble(Record::kcal).sum()));
+                .setText(df.format(records.stream().mapToDouble(Record::getKcal).sum()));
         sumRow.getCell(grid.getColumnByKey("fat"))
-                .setText(df.format(records.stream().mapToDouble(Record::fat).sum()));
+                .setText(df.format(records.stream().mapToDouble(Record::getFat).sum()));
         sumRow.getCell(grid.getColumnByKey("carbohydrate"))
-                .setText(df.format(records.stream().mapToDouble(Record::carbohydrate).sum()));
+                .setText(df.format(records.stream().mapToDouble(Record::getCarbohydrate).sum()));
         sumRow.getCell(grid.getColumnByKey("protein"))
-                .setText(df.format(records.stream().mapToDouble(Record::protein).sum()));
+                .setText(df.format(records.stream().mapToDouble(Record::getProtein).sum()));
     }
 
     @Override
@@ -229,6 +230,7 @@ public class CalendarView extends Div implements BeforeEnterObserver {
 
     private void refreshGrid() {
         grid.select(null);
+        grid.setDataProvider(new ListDataProvider<>(recordService.getAllRecordsForDay(datePicker.getValue())));
         grid.getDataProvider().refreshAll();
         calculateSum();
     }

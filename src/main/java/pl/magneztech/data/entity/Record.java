@@ -43,22 +43,22 @@ public class Record extends AbstractEntity {
     }
 
     @Transient
-    public Double kcal() {
+    public Double getKcal() {
         return weight * entry.getKcal() / 100;
     }
 
     @Transient
-    public Double fat() {
+    public Double getFat() {
         return weight * entry.getFat() / 100;
     }
 
     @Transient
-    public Double carbohydrate() {
+    public Double getCarbohydrate() {
         return weight * entry.getCarbohydrate() / 100;
     }
 
     @Transient
-    public Double protein() {
+    public Double getProtein() {
         return weight * entry.getProtein() / 100;
     }
 }
