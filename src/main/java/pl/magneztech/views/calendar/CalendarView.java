@@ -32,10 +32,7 @@ import pl.magneztech.views.MainLayout;
 
 import java.text.DecimalFormat;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @PageTitle("Calendar")
 @Route(value = "calendar/:recordID?/:action?(edit)", layout = MainLayout.class)
@@ -52,9 +49,11 @@ public class CalendarView extends Div implements BeforeEnterObserver {
     private final RecordService recordService;
     private final EntryService entryService;
     private final HeaderRow sumRow;
+    private final DatePicker datePicker = new DatePicker();
+    private final Button prevDay = new Button(new Icon(VaadinIcon.ARROW_LONG_LEFT));
+    private final Button nextDay = new Button(new Icon(VaadinIcon.ARROWS_LONG_RIGHT));
     private ComboBox<Entry> entriesCombobox;
     private NumberField weight;
-    private DatePicker datePicker = new DatePicker();
     private Record record;
 
     public CalendarView(@Autowired RecordService recordService, @Autowired EntryService entryService) {
@@ -92,10 +91,10 @@ public class CalendarView extends Div implements BeforeEnterObserver {
         }).setAutoWidth(true).setHeader("");
         grid.setDataProvider(new ListDataProvider<>(recordService.getAllRecordsForDay(LocalDate.now())));
         grid.getDataProvider().refreshAll();
-        grid.addThemeVariants(GridVariant.LUMO_NO_BORDER);
+        grid.addThemeVariants(GridVariant.LUMO_ROW_STRIPES);
         sumRow = grid.appendHeaderRow();
 
-        calculateSum();
+        calculateSum(LocalDate.now());
 
         // when a row is selected or deselected, populate form
         grid.asSingleSelect().addValueChangeListener(event -> {
@@ -141,16 +140,20 @@ public class CalendarView extends Div implements BeforeEnterObserver {
         });
 
         datePicker.setValue(LocalDate.now());
+        datePicker.setLocale(Locale.UK);
         datePicker.addClassName("centerAll");
         datePicker.addValueChangeListener(event -> {
             datePicker.setValue(event.getValue());
             clearForm();
             refreshGrid();
         });
+
+        prevDay.addClickListener(buttonClickEvent -> datePicker.setValue(datePicker.getValue().minusDays(1)));
+        nextDay.addClickListener(buttonClickEvent -> datePicker.setValue(datePicker.getValue().plusDays(1)));
     }
 
-    private void calculateSum() {
-        List<Record> records = new ArrayList<>(recordService.getAllRecordsForDay(datePicker.getValue()));
+    private void calculateSum(LocalDate date) {
+        List<Record> records = new ArrayList<>(recordService.getAllRecordsForDay(date));
         sumRow.getCell(grid.getColumnByKey("entry")).setText("Summary");
         sumRow.getCell(grid.getColumnByKey("weight"))
                 .setText(df.format(records.stream().mapToDouble(Record::getWeight).sum()));
@@ -225,14 +228,16 @@ public class CalendarView extends Div implements BeforeEnterObserver {
         wrapper.setHeightFull();
         grid.setHeight("90%");
         splitLayout.addToPrimary(wrapper);
-        wrapper.add(datePicker, grid);
+        HorizontalLayout calendarLayout = new HorizontalLayout(prevDay, datePicker, nextDay);
+        calendarLayout.addClassName("calendar");
+        wrapper.add(calendarLayout, grid);
     }
 
     private void refreshGrid() {
         grid.select(null);
         grid.setDataProvider(new ListDataProvider<>(recordService.getAllRecordsForDay(datePicker.getValue())));
         grid.getDataProvider().refreshAll();
-        calculateSum();
+        calculateSum(datePicker.getValue());
     }
 
     private void clearForm() {
